@@ -1,0 +1,1 @@
+from fastapi.testclient import TestClient\nfrom app.main import app\ndef test_health():\n    assert TestClient(app).get('/api/health').json()['status']=='online'\n

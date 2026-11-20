@@ -1,6 +1,8 @@
 # Raízes do Nordeste — Back-end Python
 
-Conversão da organização documentada no projeto Java para uma estrutura Python/FastAPI.
+Atividade prática de Projeto Back-End - Tecnologia em Análise e Desenvolvimento de Sistemas
+Centro Universitário Internacional UNINTER - 2026
+Aluno: Bruno Henrique Nonato Gonçalves (RU: 4919651)
 
 ## Estrutura
 

@@ -1,7 +1,9 @@
 # Raízes do Nordeste — Back-end Python
 
 Atividade prática de Projeto Back-End - Tecnologia em Análise e Desenvolvimento de Sistemas
+
 Centro Universitário Internacional UNINTER - 2026
+
 Aluno: Bruno Henrique Nonato Gonçalves (RU: 4919651)
 
 ## Estrutura

@@ -1,1 +1,0 @@
-# Pagamento mock\n1. Cliente solicita pagamento. 2. API valida acesso e pedido. 3. Gateway mock monta request payload. 4. Resposta simulada retorna status e payload do provedor. 5. API persiste tentativa e devolve dados ao App/Totem/Web. Nenhuma cobrança real ocorre.\n

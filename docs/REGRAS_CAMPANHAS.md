@@ -1,1 +1,0 @@
-# Campanhas\nO cupom deve existir e estar ativo; o subtotal precisa atingir o mínimo; o desconto percentual é aplicado ao subtotal. A desativação é lógica. Recomenda-se acrescentar validade, limite de uso e escopo por unidade/produto.\n

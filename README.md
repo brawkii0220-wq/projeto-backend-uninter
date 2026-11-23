@@ -1,4 +1,10 @@
-# Projeto de Back-End - Raízes do Nordeste (versão Python)
+# Raízes do Nordeste — Back-end Python
+
+Atividade prática de Projeto Back-End - Tecnologia em Análise e Desenvolvimento de Sistemas
+
+Centro Universitário Internacional UNINTER - 2026
+
+Aluno: Bruno Henrique Nonato Gonçalves (RU: 4919651)
 
 > API RESTful para a rede de restaurantes **"Raízes do Nordeste"**, implementada em **Python + Flask**
 > seguindo a mesma arquitetura em camadas, os mesmos endpoints, perfis e regras do modelo de

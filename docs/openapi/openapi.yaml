@@ -1,0 +1,2287 @@
+openapi: 3.1.0
+info:
+  title: Raízes do Nordeste - API
+  version: 1.0.0
+  description: API REST de pedidos multicanal, estoque por unidade, fidelidade, campanhas,
+    cupons e pagamento simulado. Valores monetários em centavos; datas em UTC (AAAA-MM-DDTHH:MM:SSZ).
+servers:
+- url: /api
+tags:
+- name: autenticacao
+- name: campanhas
+- name: cupons
+- name: documentos_legais
+- name: estoque
+- name: fidelidade
+- name: pagamento
+- name: pedidos
+- name: produtos
+- name: unidades
+- name: usuarios
+paths:
+  /auth/login:
+    post:
+      tags:
+      - autenticacao
+      summary: Autenticar e obter token JWT
+      operationId: autenticacao_login
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: Informe `email` e `senha`. O token expira conforme `JWT_EXPIRATION_MINUTES`
+        (padrão 60).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              email: cliente@raizes.com
+              senha: cliente123
+  /campanhas:
+    post:
+      tags:
+      - campanhas
+      summary: Criar campanha (desconto automático por produto)
+      operationId: campanhas_criar_campanha
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: Rejeita períodos sobrepostos para o mesmo produto/escopo (409 CAMPANHA_PERIODO_SOBREPOSTO).
+        GERENTE só cria campanhas da própria unidade. **Perfis:** ADMIN, GERENTE.
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              nome: Quarta do Cuscuz
+              descricao: 15% no cuscuz às quartas
+              produtoId: 2
+              unidadeId: 1
+              percentualDesconto: 15
+              dataInicio: '2027-01-01T00:00:00Z'
+              dataFim: '2027-12-31T23:59:59Z'
+              diasSemana:
+              - QUARTA
+    get:
+      tags:
+      - campanhas
+      summary: Listar campanhas (paginado, no escopo do usuário)
+      operationId: campanhas_listar_campanhas
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 10
+          maximum: 100
+  /campanhas/{campanha_id}:
+    get:
+      tags:
+      - campanhas
+      summary: Buscar campanha por ID
+      operationId: campanhas_buscar_campanha
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: campanha_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      tags:
+      - campanhas
+      summary: Atualizar campanha
+      operationId: campanhas_atualizar_campanha
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: campanha_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              nome: Quarta do Cuscuz
+              descricao: 15% no cuscuz às quartas
+              produtoId: 2
+              unidadeId: 1
+              percentualDesconto: 15
+              dataInicio: '2027-01-01T00:00:00Z'
+              dataFim: '2027-12-31T23:59:59Z'
+              diasSemana:
+              - QUARTA
+    delete:
+      tags:
+      - campanhas
+      summary: Desativar campanha (exclusão lógica)
+      operationId: campanhas_desativar_campanha
+      responses:
+        '204':
+          description: Sucesso
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: campanha_id
+        in: path
+        required: true
+        schema:
+          type: integer
+  /cupons:
+    post:
+      tags:
+      - cupons
+      summary: Criar cupom
+      operationId: cupons_criar_cupom
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: ADMIN cria cupons globais ou locais; GERENTE somente cupom local
+        da sua unidade. **Perfis:** ADMIN, GERENTE.
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              codigo: VOLTA10
+              descricao: 10% de volta
+              tipo: PERCENTUAL
+              valor: 10
+              valorMinimoCentavos: 2000
+              unidadeId: 1
+              validadeFim: '2027-12-31T23:59:59Z'
+              limiteUso: 100
+    get:
+      tags:
+      - cupons
+      summary: Listar cupons (paginado, no escopo do usuário)
+      operationId: cupons_listar_cupons
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 10
+          maximum: 100
+  /cupons/{cupom_id}:
+    get:
+      tags:
+      - cupons
+      summary: Buscar cupom por ID
+      operationId: cupons_buscar_cupom
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: cupom_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      tags:
+      - cupons
+      summary: Atualizar cupom
+      operationId: cupons_atualizar_cupom
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: cupom_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              codigo: VOLTA10
+              descricao: 10% de volta
+              tipo: PERCENTUAL
+              valor: 10
+              valorMinimoCentavos: 2000
+              unidadeId: 1
+              validadeFim: '2027-12-31T23:59:59Z'
+              limiteUso: 100
+              ativo: true
+    delete:
+      tags:
+      - cupons
+      summary: Desativar cupom (exclusão lógica)
+      operationId: cupons_desativar_cupom
+      responses:
+        '204':
+          description: Sucesso
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: cupom_id
+        in: path
+        required: true
+        schema:
+          type: integer
+  /documentos-legais/aviso-privacidade:
+    get:
+      tags:
+      - documentos_legais
+      summary: Consultar o aviso de privacidade vigente
+      operationId: documentos_legais_consultar_aviso_privacidade
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+      security: []
+  /documentos-legais/termos-uso:
+    get:
+      tags:
+      - documentos_legais
+      summary: Consultar versão, hash SHA-256 e conteúdo dos termos vigentes
+      operationId: documentos_legais_consultar_termos_uso
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+      security: []
+  /documentos-legais/termos-uso/aceite:
+    get:
+      tags:
+      - documentos_legais
+      summary: Consultar o aceite contratual do usuário
+      operationId: documentos_legais_consultar_aceite
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      security:
+      - bearerAuth: []
+    put:
+      tags:
+      - documentos_legais
+      summary: Registrar (ou repetir de forma idempotente) o aceite da versão vigente
+      operationId: documentos_legais_registrar_aceite
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: Aceite contratual; não é revogável como o consentimento LGPD da
+        fidelidade.
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              versao: '1.0'
+              hashSha256: <hash dos termos vigentes>
+  /estoque:
+    post:
+      tags:
+      - estoque
+      summary: Criar registro de estoque (ADMIN ou GERENTE da unidade)
+      operationId: estoque_criar_estoque
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              unidadeId: 1
+              produtoId: 1
+              quantidade: 50
+  /estoque/{estoque_id}:
+    get:
+      tags:
+      - estoque
+      summary: Buscar estoque por ID
+      operationId: estoque_buscar_estoque
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: estoque_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      tags:
+      - estoque
+      summary: Atualizar quantidade (ajuste auditado)
+      operationId: estoque_atualizar_estoque
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: estoque_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              quantidade: 40
+    delete:
+      tags:
+      - estoque
+      summary: Remover registro de estoque (remoção lógica; a trilha é preservada)
+      operationId: estoque_remover_estoque
+      responses:
+        '204':
+          description: Sucesso
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: estoque_id
+        in: path
+        required: true
+        schema:
+          type: integer
+  /estoque/{estoque_id}/movimentacoes:
+    post:
+      tags:
+      - estoque
+      summary: Registrar entrada ou saída
+      operationId: estoque_registrar_movimentacao
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: Saídas manuais nunca tornam o saldo negativo. Guarda quantidade,
+        motivo, saldos e responsável pseudonimizado. **Perfis:** ADMIN, GERENTE.
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: estoque_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              tipo: ENTRADA
+              quantidade: 10
+              motivo: REPOSICAO_FORNECEDOR
+    get:
+      tags:
+      - estoque
+      summary: Consultar histórico auditável de movimentações (paginado)
+      operationId: estoque_listar_movimentacoes
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: estoque_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: page
+        in: query
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 10
+          maximum: 100
+  /estoque/unidade/{unidade_id}:
+    get:
+      tags:
+      - estoque
+      summary: Listar estoque por unidade (paginado)
+      operationId: estoque_listar_estoque_da_unidade
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: unidade_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: page
+        in: query
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 10
+          maximum: 100
+  /fidelidade/consentimento:
+    get:
+      tags:
+      - fidelidade
+      summary: Consultar situação e versão do consentimento
+      operationId: fidelidade_consultar_consentimento
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      security:
+      - bearerAuth: []
+    post:
+      tags:
+      - fidelidade
+      summary: Consentir explicitamente com o uso de pontos
+      operationId: fidelidade_conceder_consentimento
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: Somente o próprio titular consente. Gera um evento imutável (finalidade,
+        versão, data/hora e origem).
+      security:
+      - bearerAuth: []
+    delete:
+      tags:
+      - fidelidade
+      summary: Revogar o consentimento
+      operationId: fidelidade_revogar_consentimento
+      responses:
+        '204':
+          description: Sucesso
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      security:
+      - bearerAuth: []
+  /fidelidade/saldo:
+    get:
+      tags:
+      - fidelidade
+      summary: Consultar saldo de pontos
+      operationId: fidelidade_consultar_saldo
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: O saldo pode ser devedor após estornos; nenhum ponto fica disponível
+        até voltar a ser positivo.
+      security:
+      - bearerAuth: []
+  /pedidos:
+    post:
+      tags:
+      - pedidos
+      summary: Criar novo pedido; aceita Idempotency-Key
+      operationId: pedidos_criar_pedido
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: 'Reserva o estoque, aplica campanhas, cupom e resgate de pontos.
+        O header opcional `Idempotency-Key` (8 a 100 caracteres) é escopado ao usuário:
+        repetir a chave com o mesmo conteúdo devolve o pedido original (200, `Idempotency-Replayed:
+        true`); com conteúdo diferente retorna 409 CHAVE_IDEMPOTENCIA_REUTILIZADA.
+        **Perfis:** CLIENTE, ATENDENTE.'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              unidadeId: 1
+              canalPedido: APP
+              cupomCodigo: NORDESTE10
+              pontosResgatar: 0
+              observacao: Sem pimenta
+              itens:
+              - produtoId: 2
+                quantidade: 2
+              - produtoId: 3
+                quantidade: 1
+    get:
+      tags:
+      - pedidos
+      summary: Listar pedidos com filtros combináveis (canalPedido, status, unidadeId)
+      operationId: pedidos_listar_pedidos
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      security:
+      - bearerAuth: []
+  /pedidos/{pedido_id}:
+    get:
+      tags:
+      - pedidos
+      summary: Buscar pedido por ID
+      operationId: pedidos_buscar_pedido
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: pedido_id
+        in: path
+        required: true
+        schema:
+          type: integer
+  /pedidos/{pedido_id}/cancelamento:
+    post:
+      tags:
+      - pedidos
+      summary: Cancelar o pedido e executar as compensações aplicáveis
+      operationId: pedidos_cancelar_pedido
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '503':
+          description: Gateway indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: 'Devolve estoque (até RECEBIDO), estorna pagamento aprovado no
+        gateway, libera cupom e ajusta pontos. Gateway indisponível: 503 e o pedido
+        permanece no estado anterior. **Perfis:** CLIENTE, ATENDENTE, ADMIN.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: pedido_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              motivo: Desistência do cliente
+  /pedidos/{pedido_id}/pagamento:
+    post:
+      tags:
+      - pagamento
+      summary: Processar pagamento (gateway simulado)
+      operationId: pagamento_pagar_pedido
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '503':
+          description: Gateway indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: 'Cria uma tentativa e devolve status e payload do gateway. Recusa
+        comercial retorna 201 com `status: RECUSADO` e o pedido continua aguardando
+        pagamento; indisponibilidade técnica retorna 503 sem consumir tentativa. Em
+        dev/test o header `X-Forcar-Status-Pagamento` (APROVADO, RECUSADO, INDISPONIVEL)
+        torna o resultado determinístico; em prod ele é ignorado. **Perfis:** CLIENTE,
+        ATENDENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: pedido_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              formaPagamento: PIX
+  /pedidos/{pedido_id}/pagamento/tentativas:
+    get:
+      tags:
+      - pagamento
+      summary: Consultar o histórico de tentativas de pagamento e estorno
+      operationId: pagamento_listar_tentativas_pagamento
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: pedido_id
+        in: path
+        required: true
+        schema:
+          type: integer
+  /pedidos/{pedido_id}/status:
+    patch:
+      tags:
+      - pedidos
+      summary: Atualizar status operacional (cozinha → pronto → entregue)
+      operationId: pedidos_atualizar_status_pedido
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: 'Fluxo: RECEBIDO → EM_PREPARO → PRONTO → ENTREGUE. Para cancelar
+        use o endpoint de cancelamento. **Perfis:** COZINHA, ATENDENTE, GERENTE, ADMIN.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: pedido_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              status: EM_PREPARO
+  /produtos:
+    get:
+      tags:
+      - produtos
+      summary: Listar produtos ativos (paginado)
+      operationId: produtos_listar_produtos
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+      security: []
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 10
+          maximum: 100
+    post:
+      tags:
+      - produtos
+      summary: Criar produto
+      operationId: produtos_criar_produto
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              nome: Baião de Dois
+              descricao: Baião com queijo coalho
+              categoria: pratos
+              precoCentavos: 2800
+  /produtos/{produto_id}:
+    get:
+      tags:
+      - produtos
+      summary: Buscar produto por ID
+      operationId: produtos_buscar_produto
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      security: []
+      parameters:
+      - name: produto_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      tags:
+      - produtos
+      summary: Atualizar produto
+      operationId: produtos_atualizar_produto
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: produto_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              nome: Baião de Dois
+              descricao: Baião com queijo coalho
+              categoria: pratos
+              precoCentavos: 2800
+    delete:
+      tags:
+      - produtos
+      summary: Desativar produto (soft-delete)
+      operationId: produtos_desativar_produto
+      responses:
+        '204':
+          description: Sucesso
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN, GERENTE.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: produto_id
+        in: path
+        required: true
+        schema:
+          type: integer
+  /produtos/unidade/{unidade_id}:
+    get:
+      tags:
+      - produtos
+      summary: Listar disponibilidade de produtos por unidade (paginado)
+      operationId: produtos_listar_produtos_da_unidade
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: 'Itens sem saldo retornam `disponivel: false` e não podem ser vendidos.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: unidade_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: page
+        in: query
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 10
+          maximum: 100
+  /unidades:
+    post:
+      tags:
+      - unidades
+      summary: Criar unidade
+      operationId: unidades_criar_unidade
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN.'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              nome: Unidade Boa Viagem
+              cidade: Recife
+    get:
+      tags:
+      - unidades
+      summary: Listar unidades ativas (paginado)
+      operationId: unidades_listar_unidades
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 10
+          maximum: 100
+  /unidades/{unidade_id}:
+    get:
+      tags:
+      - unidades
+      summary: Buscar unidade por ID
+      operationId: unidades_buscar_unidade
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: unidade_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      tags:
+      - unidades
+      summary: Atualizar unidade
+      operationId: unidades_atualizar_unidade
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: unidade_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              nome: Unidade Boa Viagem
+              cidade: Recife
+              ativa: true
+    delete:
+      tags:
+      - unidades
+      summary: Desativar unidade (exclusão lógica)
+      operationId: unidades_desativar_unidade
+      responses:
+        '204':
+          description: Sucesso
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: unidade_id
+        in: path
+        required: true
+        schema:
+          type: integer
+  /usuarios:
+    post:
+      tags:
+      - usuarios
+      summary: Registrar cliente com aceite dos termos vigentes
+      operationId: usuarios_registrar_usuario
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: 'Exige `aceiteTermosUso: true`, `versaoTermosUso` e `hashTermosUso`
+        (consulte GET /documentos-legais/termos-uso).'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              nome: Maria da Silva
+              email: maria@exemplo.com
+              senha: senha-segura-1
+              telefone: (81) 99999-0000
+              cpf: 529.982.247-25
+              aceiteTermosUso: true
+              versaoTermosUso: '1.0'
+              hashTermosUso: <hashSha256 retornado por GET /documentos-legais/termos-uso>
+    get:
+      tags:
+      - usuarios
+      summary: Listar usuários (paginado)
+      operationId: usuarios_listar_usuarios
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 10
+          maximum: 100
+  /usuarios/{usuario_id}:
+    get:
+      tags:
+      - usuarios
+      summary: Buscar usuário por ID
+      operationId: usuarios_buscar_usuario
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '403':
+          description: Perfil sem permissão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: '**Perfis:** ADMIN.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      tags:
+      - usuarios
+      summary: Atualizar usuário; alteração de perfil/unidade somente por ADMIN
+      operationId: usuarios_atualizar_usuario
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Requisição malformada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: Permitido ao próprio usuário ou a ADMIN.
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example:
+              nome: Maria S. Souza
+              telefone: (81) 98888-0000
+              perfil: GERENTE
+              unidadeId: 1
+    delete:
+      tags:
+      - usuarios
+      summary: Anonimizar usuário (LGPD)
+      operationId: usuarios_anonimizar_usuario
+      responses:
+        '204':
+          description: Sucesso
+        '401':
+          description: Não autenticado ou token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '404':
+          description: Recurso inexistente ou fora do escopo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+        '409':
+          description: Conflito de regra de negócio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResposta'
+      description: Permitido ao próprio usuário ou a ADMIN. Pedidos e trilhas financeiras
+        são preservados sem dados pessoais.
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: integer
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErroResposta:
+      type: object
+      properties:
+        error:
+          type: string
+          example: ESTOQUE_INSUFICIENTE
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              issue:
+                type: string
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+        requestId:
+          type: string
